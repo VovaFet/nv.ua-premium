@@ -17,12 +17,15 @@ req = urlopen(url)
 #сохраняем html
 # with open("index.html", "w") as file:
 #     file.write(src)
+
 #открываем в случае сохранения
 # with open("index.html") as file:
 #     src = file.read()
+
 soup = BeautifulSoup(req, "lxml")
 #создаём список ссылок всех новостей
 all_news_hrefs_list = []
+
 #забираем ссылку главной новости
 abs_href = soup.find_all(class_="absolute_link")
 for link in abs_href:
