@@ -3,128 +3,96 @@ from bs4 import BeautifulSoup
 import json
 from urllib.request import urlopen
 
+from numpy import full
 
-url = "https://nv.ua/premium.html"
-#описываем заголовки get запроса
-headers = {
-"Accept": "*/*",
-"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36"
-}
-#выполняем get запрос страницы
-req = urlopen(url)
-# src = req.text
-# # print(src)
-#сохраняем html
-# with open("index.html", "w") as file:
-#     file.write(src)
 
-#открываем в случае сохранения
-# with open("index.html") as file:
-#     src = file.read()
+def open_main_page():
+    url = "https://nv.ua/premium.html"
+    all_news_hrefs_list = []
 
-soup = BeautifulSoup(req, "lxml")
-#создаём список ссылок всех новостей
-all_news_hrefs_list = []
-
-#забираем ссылку главной новости
-abs_href = soup.find_all(class_="absolute_link")
-for link in abs_href:
-    link_href = link.get("href")
-    all_news_hrefs_list.append(link_href)
-
-all_img_links = soup.find_all("a", class_="atom-wrapper-body") #!!!!список ссылок из class_="atom-wrapper-body"
-all_journ_links = soup.find_all("a", class_="atom-text normal-text") #список ссылок из class_="atom-text normal-text"
-all_additional_news_links = soup.find_all("a", class_="text") #список ссылок дополнительных динамических новостей
-for links in all_journ_links: #достаём ссылки atom-text normal-text из списка
-    journ_links = links.get("href")
-    all_news_hrefs_list.append(journ_links)
-
-for links in all_img_links: #достаём ссылки atom-wrapper-body из списка
-    img_links = links.get("href")
-    all_news_hrefs_list.append(img_links)
-
-for links in  all_additional_news_links:#достаём ссылки из "a", class_="text"
-    additional_news_links = links.get("href")
-    all_news_hrefs_list.append(additional_news_links)
-
-print(len(all_news_hrefs_list))
-print(all_news_hrefs_list)
-#-------------------------------------<<<парсим JSON>>>---------------------------------------------------
-
-# count_of_articles = 0
-# for url in all_news_hrefs_list:
-#     soup_for_JSON = BeautifulSoup(urlopen(url), "lxml")  #готовим soup'чик
-#     script = soup_for_JSON.find_all('script', type='application/ld+json')
-#     for text_script in script:
-#         text_script = text_script.text.strip()
-#         count_of_articles += 1
-#         text_script = json.loads(text_script)[3] #выбираем нужный нам словарь из списка, (json.loads принимает объект и возвращает(преобразовывает) json объект в python dict)
-#         full_article = text_script['articleBody']#берём полную статью
-#         # print(f"{count_of_articles}.{full_article}")
-#-------------------------------------<<<заканчиваем парсить JSON>>>---------------------------------------------------
-
-#-------------------------------------<<<создаем функцию для наполнения БД>>>---------------------------------------------------
-def creating_DB(url):
-    conn = sqlite3.connect('articles.db')
-    cur = conn.cursor()
-    cur.execute("""CREATE TABLE IF NOT EXISTS articles(
-        article_title TEXT,
-        article_text TEXT,
-        article_author TEXT,
-        article_date TEXT,
-        article_href TEXT);""")
-    conn.commit()
     req = urlopen(url)
     soup = BeautifulSoup(req, "lxml")
-    articles = []
-    article_title = soup.find("h1")
-    article_title = article_title.text.strip()
-    articles.append(article_title)
+    abs_href = soup.find_all(class_="absolute_link")
+    all_img_links = soup.find_all("a", class_="atom-wrapper-body")
+    all_journ_links = soup.find_all("a", class_="atom-text normal-text")
+    all_additional_news_links = soup.find_all("a", class_="text")
 
-    soup_for_JSON = BeautifulSoup(urlopen(url), "lxml")  #готовим soup'чик
-    script = soup_for_JSON.find_all('script', type='application/ld+json')
-    for text_script in script:
-        text_script = text_script.text.strip()
-        text_script = json.loads(text_script)[3] #выбираем нужный нам словарь из списка, (json.loads принимает объект и возвращает(преобразовывает) json объект в python dict)
-        full_article = text_script['articleBody'].replace('Републикация полной версии запрещена', ' ').replace('Присоединяйтесь к нашему телеграм-каналу Мнения НВ',' ')#берём полную статью
-        articles.append(full_article)
+    all_news_hrefs_list = extract_links(abs_href) + \
+    extract_links(all_img_links) + extract_links(all_journ_links) + \
+    extract_links(all_additional_news_links)
+
+    return all_news_hrefs_list
+
+
+def extract_links(links):
+    ret_list = []
+    for link in links:
+        ret_list.append(link.get("href"))
+    return ret_list
+
+
+def db_init(db_name):
+    conn = sqlite3.connect(db_name)
+    cur = conn.cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS articles(
+        title TEXT,
+        text TEXT,
+        author TEXT,
+        date_published TEXT,
+        date_modified TEXT,
+        link TEXT);""")
+    conn.commit()
+    return conn
+
+
+def parse_link(link):
+    soup = BeautifulSoup(urlopen(link), "lxml")
+
+    for elem in soup.find_all("script", type="application/ld+json"):
+        json_string = elem.text.strip()
+
+    json_text_tag = json.loads(json_string)[3]
 
     try:
-        article_author = soup.find("a", class_="opinion_author_name")
-        article_author = article_author.text.strip()
-        articles.append(article_author)
-    except AttributeError:
-        try:
-            article_author = soup.find("div", class_="author-avatar__name")
-            article_author = article_author.text.strip()
-            articles.append(article_author)
-        except AttributeError:
-            try:
-                article_author = soup.find("p", class_="opinion_author_name opinion_author_name--green")
-                article_author = article_author.text.strip()
-                articles.append(article_author)
-            except AttributeError:
-                article_author = soup.find("p", class_="opinion_author_name")
-                article_author = article_author.text.strip()
-                articles.append(article_author)
+        article_title = json_text_tag['headline']
+    except KeyError:
+        article_title = None
+
     try:
-        article_date = soup.find("div", class_="article__head__additional_published")
-        article_date = article_date.text.strip()
-        articles.append(article_date)
-    except AttributeError:
-        article_date = soup.find("div", class_="magazine-link")
-        article_date = article_date.text.strip()
-        articles.append(article_date)
+        article_author = json_text_tag['author']['name']
+    except KeyError:
+        article_author = None
 
-    articles.append(url)
+    try:
+        atricle_text = json_text_tag['articleBody'].replace('Републикация полной версии запрещена', ' ').replace('Присоединяйтесь к нашему телеграм-каналу Мнения НВ',' ')
+    except KeyError:
+        article_text = None
 
-    # print(articles)
-    # print(len(articles))
-    return [cur.execute("INSERT INTO articles VALUES(?, ?, ?, ?, ?);", articles), conn.commit(), print(articles)]
+    try:
+        article_date_published = json_text_tag['datePublished']
+    except KeyError:
+        article_date_published = None
+
+    try:
+        article_date_modified = json_text_tag['dateModified']
+    except KeyError:
+        article_date_modified = None
+
+    return [article_title, atricle_text, article_author, article_date_published, article_date_modified, link]
 
 
-for url in all_news_hrefs_list:
-    creating_DB(url)
+def commit_to_db(db_handler, row):
+    cur = db_handler.cursor()
+    cur.execute("INSERT INTO articles VALUES(?, ?, ?, ?, ?, ?);", row)
+    db_handler.commit()
 
-#-------------------------------------<<<БД>>>---------------------------------------------------
 
+if __name__ == "__main__":
+
+    links_list = open_main_page()
+    print("Total articles num: ", len(links_list))
+    db_handler = db_init('articles.db')
+
+    for link in links_list:
+        db_row = parse_link(link)
+        commit_to_db(db_handler, db_row)
