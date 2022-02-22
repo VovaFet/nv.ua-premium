@@ -51,6 +51,7 @@ print(len(all_news_hrefs_list))
 print(all_news_hrefs_list)
 #-------------------------------------<<<парсим JSON>>>---------------------------------------------------
 
+
 # count_of_articles = 0
 # for url in all_news_hrefs_list:
 #     soup_for_JSON = BeautifulSoup(urlopen(url), "lxml")  #готовим soup'чик
