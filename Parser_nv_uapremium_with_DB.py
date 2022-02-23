@@ -3,9 +3,6 @@ from bs4 import BeautifulSoup
 import json
 from urllib.request import urlopen
 
-from numpy import full
-
-
 def open_main_page():
     url = "https://nv.ua/premium.html"
     all_news_hrefs_list = []
