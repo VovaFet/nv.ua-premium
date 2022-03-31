@@ -2,12 +2,18 @@ import sqlite3
 from bs4 import BeautifulSoup
 import json
 from urllib.request import urlopen
+import requests
 
 def open_main_page():
-    url = "https://nv.ua/premium.html"
+    url = 'https://nv.ua/premium.html'
     all_news_hrefs_list = []
 
-    req = urlopen(url)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.60 Safari/537.36",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache"}
+    req = requests.get(url, headers=headers).text
+
     soup = BeautifulSoup(req, "lxml")
     abs_href = soup.find_all(class_="absolute_link")
     all_img_links = soup.find_all("a", class_="atom-wrapper-body")
@@ -43,7 +49,12 @@ def db_init(db_name):
 
 
 def parse_link(link):
-    soup = BeautifulSoup(urlopen(link), "lxml")
+    headers = {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.60 Safari/537.36",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache"}
+    req = requests.get(link, headers=headers).text
+    soup = BeautifulSoup(req, "lxml")
 
     for elem in soup.find_all("script", type="application/ld+json"):
         json_string = elem.text.strip()
