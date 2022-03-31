@@ -4,14 +4,16 @@ import json
 from urllib.request import urlopen
 import requests
 
+headers = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.60 Safari/537.36",
+    "Cache-Control": "no-cache",
+    "Pragma": "no-cache"}
+
 def open_main_page():
     url = 'https://nv.ua/premium.html'
     all_news_hrefs_list = []
 
-    headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.60 Safari/537.36",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache"}
+
     req = requests.get(url, headers=headers).text
 
     soup = BeautifulSoup(req, "lxml")
@@ -49,10 +51,7 @@ def db_init(db_name):
 
 
 def parse_link(link):
-    headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.60 Safari/537.36",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache"}
+
     req = requests.get(link, headers=headers).text
     soup = BeautifulSoup(req, "lxml")
 
