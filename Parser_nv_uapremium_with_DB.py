@@ -1,11 +1,11 @@
 import sqlite3
 from bs4 import BeautifulSoup
 import json
-from urllib.request import urlopen
-import requests
 
+import requests
+from user_agent import generate_user_agent
 headers = {
-    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.60 Safari/537.36",
+    "User-Agent": generate_user_agent(),
     "Cache-Control": "no-cache",
     "Pragma": "no-cache"}
 
